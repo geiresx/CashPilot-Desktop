@@ -173,6 +173,9 @@ func (m *Manager) DeployRouted(ctx context.Context, slug string, credentials map
 	if !ok {
 		return ProxiedResult{}, fmt.Errorf("unknown service: %s", slug)
 	}
+	if svc.ManualOnly {
+		return ProxiedResult{}, fmt.Errorf("%s is tracked manually and has no Docker image", svc.Name)
+	}
 	if err := refuseRetired(svc); err != nil {
 		return ProxiedResult{}, err
 	}

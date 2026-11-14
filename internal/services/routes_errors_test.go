@@ -204,6 +204,23 @@ func TestARoutedDeployIsRefusedBeforeItRecordsARoute(t *testing.T) {
 	}
 }
 
+// A service tracked by hand has no Docker image, so there is nothing to run through a
+// proxy: refused as DeployWith refuses it, before a route is recorded.
+func TestAHandTrackedServiceIsNotDeployedThroughAProxy(t *testing.T) {
+	r := newRouteRig(t)
+	_, err := r.m.DeployRouted(context.Background(), "manual-svc", tok(), r.id)
+	if err == nil || !strings.Contains(err.Error(), "tracked manually and has no Docker image") {
+		t.Fatalf("DeployRouted = %v", err)
+	}
+	var rows int
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM routes WHERE slug = 'manual-svc'`).Scan(&rows); err != nil || rows != 0 {
+		t.Fatalf("route rows %d, %v", rows, err)
+	}
+	if len(r.p.deploys) != 0 {
+		t.Fatalf("nothing deployed: %+v", r.p.deploys)
+	}
+}
+
 func TestARetiredServiceIsNotDeployedThroughAProxy(t *testing.T) {
 	st := newTestStore(t)
 	m := NewManager(newFakeProxyProvider(), newRetiredTestCatalog(t), st)
